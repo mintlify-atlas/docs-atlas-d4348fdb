@@ -1,0 +1,114 @@
+---
+title: "Custom & Multi-Preview Annotations"
+description: "Create reusable preview annotation bundles and apply them to composables."
+---
+
+Compose supports **custom preview annotations** — annotation classes that are themselves annotated with one or more `@Preview` annotations. Showkase picks these up automatically, so any composable annotated with your custom annotation appears in the browser just like a regular `@Preview`.
+
+This lets you define a standard set of preview conditions once and reuse them across your codebase.
+
+## Defining a custom preview annotation
+
+Annotate an annotation class with one or more `@Preview` declarations:
+
+```kotlin
+// Single-preview custom annotation
+@Preview(name = "Custom Preview One First", group = "Custom Previews")
+annotation class CustomPreview2
+
+// Multi-preview custom annotation (two previews bundled together)
+@Preview(name = "Custom Preview One First", group = "Custom Previews")
+@Preview(name = "Custom Preview One Second", group = "Custom Previews")
+annotation class CustomPreview1
+```
+
+## Using a custom annotation on a composable
+
+Apply the custom annotation the same way you would use `@Preview`:
+
+```kotlin
+@CustomPreview1
+@Composable
+fun CustomAnnotationPreview() {
+    MyComponent()
+}
+```
+
+Showkase generates one entry in the browser for each `@Preview` stacked on `CustomPreview1`, so the composable above produces two previews.
+
+## Combining multiple custom annotations
+
+You can stack several custom annotations on the same composable:
+
+```kotlin
+@Preview(name = "Custom Preview One First", group = "Custom Previews")
+@Preview(name = "Custom Preview One Second", group = "Custom Previews")
+annotation class CustomPreviewOne
+
+@Preview(name = "Custom Preview Two First", group = "Custom Previews")
+annotation class CustomPreviewTwo
+
+@CustomPreviewOne
+@CustomPreviewTwo
+@Composable
+fun CustomAnnotationPreviewCombined() {
+    MyComponent()
+}
+```
+
+This composable produces three previews in total — two from `CustomPreviewOne` and one from `CustomPreviewTwo`.
+
+## KAPT vs KSP
+
+There is an important difference in how KAPT and KSP handle repeatable annotations on custom preview annotations, due to [KT-49682](https://youtrack.jetbrains.com/issue/KT-49682/Support-JVM-IR-in-KAPT-stub-generation).
+
+**KSP** handles all cases correctly, including multi-preview annotations like:
+
+```kotlin
+@Preview(name = "Shape 100 by 100", group = "Shapes", widthDp = 100, heightDp = 100)
+@Preview(name = "Shape 150 by 150", group = "Shapes", widthDp = 150, heightDp = 150)
+annotation class CustomShape
+```
+
+**KAPT** will silently skip multi-preview annotations (more than one `@Preview` on the annotation class). Single-preview custom annotations work with both processors:
+
+```kotlin
+// Works with both KSP and KAPT
+@Preview(name = "Shape 100 by 100", group = "Shapes", widthDp = 100, heightDp = 100)
+annotation class CustomShape
+```
+
+<Warning>
+  If you use KAPT and your custom annotation carries more than one `@Preview`, those previews will be silently skipped. Migrate to KSP to use multi-preview annotations reliably.
+</Warning>
+
+## Required KAPT compiler argument
+
+When using KAPT, you must explicitly declare each custom preview annotation you want Showkase to process by passing a `multiPreviewType` compiler argument with the **fully-qualified class name**:
+
+```kotlin
+kapt {
+    arguments {
+        arg("multiPreviewType", "com.airbnb.android.showkasesample.CustomPreview1")
+    }
+}
+```
+
+<Warning>
+  Use the full qualified name of the annotation class, not just the simple name. Without this argument, KAPT will not process the custom annotation.
+</Warning>
+
+If you have multiple custom preview annotations, add a separate `arg` call for each one:
+
+```kotlin
+kapt {
+    arguments {
+        arg("multiPreviewType", "com.example.ui.CustomPreviewOne")
+        arg("multiPreviewType", "com.example.ui.CustomPreviewTwo")
+    }
+}
+```
+
+<Note>
+  KSP users do not need to provide `multiPreviewType` arguments — KSP discovers custom preview annotations automatically.
+</Note>

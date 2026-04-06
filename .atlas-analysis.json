@@ -1,0 +1,91 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Showkase",
+  "projectDescription": "An annotation-processor based Android library that auto-generates a UI browser to organize, discover, search, and visualize Jetpack Compose components, colors, and typography.",
+  "theme": "willow",
+  "primaryColor": "#7c7c7c",
+  "lightColor": "#040404",
+  "darkColor": "#c4c4c4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Annotations",
+            "pages": [
+              "annotations/showkase-composable",
+              "annotations/showkase-color",
+              "annotations/showkase-typography",
+              "annotations/showkase-root"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/multi-module",
+              "guides/component-styles",
+              "guides/preview-parameters",
+              "guides/custom-multipreview",
+              "guides/metadata-api"
+            ]
+          },
+          {
+            "group": "Screenshot Testing",
+            "pages": [
+              "screenshot-testing/overview",
+              "screenshot-testing/paparazzi",
+              "screenshot-testing/shot"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/proguard-r8",
+              "reference/kapt-vs-ksp",
+              "reference/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Auto-generated UI browser for Jetpack Compose components, colors, and typography",
+    "First-class support for @Preview annotation — existing previews work out of the box",
+    "5 auto-generated permutations per component: basic, dark mode, RTL, font scaled, display scaled",
+    "Multi-module support for aggregating UI elements across the entire project",
+    "Component style variants via styleName and defaultStyle properties",
+    "KDoc documentation displayed inline in the Showkase browser",
+    "Screenshot testing integration via Paparazzi and Shot",
+    "Metadata API (Showkase.getMetadata()) for custom browsers and static analysis",
+    "Incremental annotation processing for faster builds",
+    "Search support by component name or group"
+  ],
+  "publicApiSurface": [
+    "@ShowkaseComposable(name, group, styleName, widthDp, heightDp, skip, defaultStyle, tags, extraMetadata, screenshotCaptureConfig)",
+    "@ShowkaseColor(name, group)",
+    "@ShowkaseTypography(name, group)",
+    "@ShowkaseRoot",
+    "ShowkaseRootModule (interface)",
+    "Showkase.getBrowserIntent(context)",
+    "Showkase.getMetadata(): ShowkaseElementsMetadata",
+    "ShowkaseElementsMetadata(componentList, colorList, typographyList)",
+    "ShowkaseBrowserComponent",
+    "ShowkaseBrowserColor",
+    "ShowkaseBrowserTypography",
+    "ShowkaseScreenshotTest (interface)",
+    "ShowkaseScreenshotTest.onScreenshot(id, name, group, styleName, tags, extraMetadata, screenshotType, screenshotBitmap)",
+    "@ShowkaseScreenshot",
+    "ScreenshotCaptureConfig(type, durationMillis, framerate, offsetsMillis)",
+    "ScreenshotCaptureType (SingleStaticImage, SingleAnimatedImage, MultipleImagesAtOffsets)"
+  ]
+}

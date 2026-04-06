@@ -1,0 +1,129 @@
+---
+title: "KAPT vs KSP"
+description: "Compare annotation processor options for Showkase and learn how to configure each."
+---
+
+Showkase supports two annotation processors: KAPT and KSP. Both generate the same browser code, but they differ in performance and in how they handle repeatable annotations.
+
+## Key differences
+
+| Feature | KAPT | KSP |
+| ------- | ---- | --- |
+| Build speed | Slower (requires stub generation) | Faster (incremental, runs in parallel) |
+| Repeatable annotations (stacked `@Preview`) | Partial — see KT-49682 below | Full support |
+| Stacked `@Preview` + `@ShowkaseComposable` | Not supported | Supported |
+| Compiler argument for custom multi-preview types | Required (`multiPreviewType`) | Not required |
+
+## The KT-49682 bug (KAPT only)
+
+KAPT has a known issue — [KT-49682](https://youtrack.jetbrains.com/issue/KT-49682) — where repeatable annotations from Kotlin are not fully supported during stub generation. This means that if you define a custom multi-preview annotation with more than one stacked `@Preview`, KAPT will silently skip it.
+
+```kotlin
+// This custom annotation is skipped by KAPT, but picked up by KSP
+@Preview(name = "Shape 100 by 100", group = "Shapes", widthDp = 100, heightDp = 100)
+@Preview(name = "Shape 150 by 150", group = "Shapes", widthDp = 150, heightDp = 150)
+annotation class CustomShape
+```
+
+```kotlin
+// A single @Preview annotation works with both KAPT and KSP
+@Preview(name = "Shape 100 by 100", group = "Shapes", widthDp = 100, heightDp = 100)
+annotation class CustomShape
+```
+
+<Warning>
+  If you use stacked `@Preview` annotations on a composable alongside `@ShowkaseComposable`, you must use KSP. KAPT does not support this combination due to KT-49682.
+</Warning>
+
+## Setup
+
+Current versions: Showkase `1.0.5`, KSP `2.1.20-2.0.0`.
+
+### Debug-only setup (recommended)
+
+Use this when you want Showkase available only in debug builds. This is the practical choice for most apps — it keeps the browser out of your release APK.
+
+<CodeGroup>
+
+```kotlin KSP
+dependencies {
+    debugImplementation "com.airbnb.android:showkase:1.0.5"
+    implementation "com.airbnb.android:showkase-annotation:1.0.5"
+    kspDebug "com.airbnb.android:showkase-processor:1.0.5"
+}
+```
+
+```kotlin KAPT
+dependencies {
+    debugImplementation "com.airbnb.android:showkase:1.0.5"
+    implementation "com.airbnb.android:showkase-annotation:1.0.5"
+    kaptDebug "com.airbnb.android:showkase-processor:1.0.5"
+}
+```
+
+</CodeGroup>
+
+### Always-on setup
+
+Use this when you want Showkase available in all build variants, including release.
+
+<CodeGroup>
+
+```kotlin KSP
+dependencies {
+    implementation "com.airbnb.android:showkase:1.0.5"
+    implementation "com.airbnb.android:showkase-annotation:1.0.5"
+    ksp "com.airbnb.android:showkase-processor:1.0.5"
+}
+```
+
+```kotlin KAPT
+dependencies {
+    implementation "com.airbnb.android:showkase:1.0.5"
+    implementation "com.airbnb.android:showkase-annotation:1.0.5"
+    kapt "com.airbnb.android:showkase-processor:1.0.5"
+}
+```
+
+</CodeGroup>
+
+## Compiler arguments
+
+### Skipping private previews
+
+Both processors support a `skipPrivatePreviews` flag that causes the processor to ignore `private` functions annotated with `@Preview`. This mirrors the behavior of the Compose tooling.
+
+<Tabs>
+  <Tab title="KSP">
+    ```kotlin
+    ksp {
+        arg("skipPrivatePreviews", "true")
+    }
+    ```
+  </Tab>
+  <Tab title="KAPT">
+    ```kotlin
+    kapt {
+        arguments {
+            arg("skipPrivatePreviews", "true")
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Custom multi-preview annotations (KAPT only)
+
+When using KAPT, you must declare each custom multi-preview annotation type so the processor can find it. Use the fully-qualified class name.
+
+```kotlin
+kapt {
+    arguments {
+        arg("multiPreviewType", "com.example.myapp.LocalePreview")
+    }
+}
+```
+
+<Note>
+  This argument is not needed with KSP. KSP discovers custom multi-preview annotations automatically.
+</Note>

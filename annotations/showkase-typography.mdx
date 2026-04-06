@@ -1,0 +1,113 @@
+---
+title: "@ShowkaseTypography"
+description: "Annotate TextStyle properties to display them in the Showkase browser."
+keywords: ["ShowkaseTypography", "annotation", "typography", "TextStyle", "design system", "Showkase"]
+---
+
+`@ShowkaseTypography` marks a `TextStyle` property for display in the Showkase browser. Apply it to any `val` or `var` of type `androidx.compose.ui.text.TextStyle`.
+
+## Signature
+
+```kotlin
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.FIELD)
+annotation class ShowkaseTypography(
+    val name: String = "",
+    val group: String = "",
+)
+```
+
+<Note>
+  The annotation targets `AnnotationTarget.FIELD`, so it must be applied to a property declaration (`val` or `var`), not a function or class.
+</Note>
+
+## Parameters
+
+<ParamField path="name" type="String" default='""'>
+  The display name for the text style in the browser. When omitted, Showkase uses the property name.
+</ParamField>
+
+<ParamField path="group" type="String" default='""'>
+  Groups this text style with others in the browser. When omitted, Showkase uses the enclosing class name. For top-level properties, the default group is `"Default Group"`.
+</ParamField>
+
+## Usage
+
+### Named text style with explicit name and group
+
+```kotlin
+@ShowkaseTypography(name = "Heading 1", group = "Material Typography")
+val h1 = TextStyle(
+    fontWeight = FontWeight.Light,
+    fontSize = 96.sp,
+    letterSpacing = (-1.5).sp
+)
+```
+
+### Multiple type scale entries
+
+```kotlin
+@ShowkaseTypography(name = "Heading 2", group = "Material Typography")
+val h2 = TextStyle(
+    fontWeight = FontWeight.Light,
+    fontSize = 60.sp,
+    letterSpacing = (-0.5).sp
+)
+
+@ShowkaseTypography(name = "Body 1", group = "Material Typography")
+val body1 = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 16.sp,
+    letterSpacing = 0.5.sp
+)
+
+@ShowkaseTypography(name = "Caption", group = "Material Typography")
+val caption = TextStyle(
+    fontWeight = FontWeight.Normal,
+    fontSize = 12.sp,
+    letterSpacing = 0.4.sp
+)
+```
+
+### Omitting name and group
+
+When both parameters are omitted, Showkase derives defaults from the context:
+
+```kotlin
+// Name: "displayLarge" (property name)
+// Group: enclosing class name, or "Default Group" if top-level
+@ShowkaseTypography
+val displayLarge = TextStyle(
+    fontWeight = FontWeight.Bold,
+    fontSize = 57.sp
+)
+```
+
+## Annotating inside a class or object
+
+When defined inside a class or object, the group defaults to the enclosing class name if `group` is not set:
+
+```kotlin
+object AppTypography {
+    @ShowkaseTypography(name = "Display Large")
+    // Group defaults to "AppTypography"
+    val displayLarge = TextStyle(
+        fontWeight = FontWeight.Bold,
+        fontSize = 57.sp,
+        letterSpacing = (-0.25).sp
+    )
+
+    @ShowkaseTypography(name = "Label Small")
+    // Group defaults to "AppTypography"
+    val labelSmall = TextStyle(
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        letterSpacing = 0.5.sp
+    )
+}
+```
+
+<Tip>
+  Keeping your text styles inside a dedicated object or class gives them a meaningful default group automatically, reducing the annotation boilerplate.
+</Tip>

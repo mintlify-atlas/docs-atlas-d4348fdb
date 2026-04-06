@@ -1,0 +1,194 @@
+---
+title: "Screenshot Testing Overview"
+description: "Automatically generate screenshot tests for every Compose component, color, and typography style registered with Showkase."
+---
+
+## How it works
+
+Because Showkase already has a complete catalog of your UI elements — every `@ShowkaseComposable`, `@ShowkaseColor`, and `@ShowkaseTypography` — it can auto-generate one screenshot test per element. You write the capture logic once; Showkase generates the test cases for all registered elements.
+
+The integration requires two things:
+
+1. Annotate an abstract class with `@ShowkaseScreenshot` to tell the annotation processor which `@ShowkaseRoot` to target.
+2. Implement `ShowkaseScreenshotTest` (or a framework-specific subclass) and provide your capture logic in `onScreenshot`.
+
+Showkase then generates a concrete subclass that iterates over every component, color, and typography entry and calls `onScreenshot` with its screenshot bitmap.
+
+## Supported frameworks
+
+<CardGroup cols={2}>
+  <Card title="Paparazzi" icon="laptop" href="/screenshot-testing/paparazzi">
+    JVM-based. No emulator or device required. Renders components using the Android layout engine on the host machine.
+  </Card>
+  <Card title="Shot" icon="mobile" href="/screenshot-testing/shot">
+    Instrumented. Runs on a real device or emulator. Uses the Compose test rule to render and capture components.
+  </Card>
+</CardGroup>
+
+## The `@ShowkaseScreenshot` annotation
+
+Apply `@ShowkaseScreenshot` to your abstract test class and pass the `@ShowkaseRoot` class you want to test:
+
+```kotlin
+@ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+abstract class MyScreenshotTest : ShowkaseScreenshotTest {
+    // ...
+}
+```
+
+<ParamField path="rootShowkaseClass" type="KClass<*>" required>
+  The class annotated with `@ShowkaseRoot` that you want to generate screenshot tests for. If you have multiple `@ShowkaseRoot` declarations, pass the one that covers the components you want to test.
+</ParamField>
+
+<Note>
+  Place your test class in the `androidTest` source set. The generated subclass depends on test infrastructure that is only available there.
+</Note>
+
+## The `ShowkaseScreenshotTest` interface
+
+`ShowkaseScreenshotTest` is the core interface both framework integrations build on. It declares:
+
+- A `composeTestRule` property (required as a JUnit `@get:Rule`) used to render content and capture bitmaps.
+- An `onScreenshot` callback invoked after each element is captured.
+
+```kotlin
+interface ShowkaseScreenshotTest {
+    @get:Rule
+    val composeTestRule: ComposeContentTestRule
+
+    fun onScreenshot(
+        id: String,
+        name: String,
+        group: String,
+        styleName: String? = null,
+        tags: List<String> = emptyList(),
+        extraMetadata: List<String> = emptyList(),
+        screenshotType: ShowkaseScreenshotType,
+        screenshotBitmap: Bitmap,
+    )
+}
+```
+
+### `onScreenshot` parameters
+
+<ParamField path="id" type="String" required>
+  A unique identifier for this screenshot. There is no guarantee that the value is stable across different runs for the same element — do not rely on it as a persistent key.
+</ParamField>
+
+<ParamField path="name" type="String" required>
+  The human-readable name of the UI element. For composables this is the `name` from `@ShowkaseComposable`; for colors and typography it is the registered name.
+</ParamField>
+
+<ParamField path="group" type="String" required>
+  The group the UI element belongs to. Mirrors the `group` field on the originating annotation.
+</ParamField>
+
+<ParamField path="styleName" type="String | null">
+  The style variant name. Only populated when `screenshotType` is `Composable` and the component has a `styleName` set in `@ShowkaseComposable`. `null` for colors and typography.
+</ParamField>
+
+<ParamField path="tags" type="List<String>">
+  The list of tags from `@ShowkaseComposable`. Only populated when `screenshotType` is `Composable`; empty for colors and typography.
+</ParamField>
+
+<ParamField path="extraMetadata" type="List<String>">
+  The list of extra metadata strings from `@ShowkaseComposable`. Only populated when `screenshotType` is `Composable`; empty for colors and typography.
+</ParamField>
+
+<ParamField path="screenshotType" type="ShowkaseScreenshotType" required>
+  Indicates which kind of element was captured. See [`ShowkaseScreenshotType`](#showkasescreenshottype) below.
+</ParamField>
+
+<ParamField path="screenshotBitmap" type="Bitmap" required>
+  The `android.graphics.Bitmap` of the rendered UI element. Pass this to your screenshot framework to record or compare.
+</ParamField>
+
+## `ShowkaseScreenshotType`
+
+```kotlin
+enum class ShowkaseScreenshotType {
+    Composable,
+    Typography,
+    Color
+}
+```
+
+Use `screenshotType` inside `onScreenshot` to branch on the kind of element being captured — for example, to apply different naming strategies or route to different golden directories.
+
+## Abstract class pattern
+
+Your test class must be `abstract` (or `open`) because Showkase generates a concrete subclass that extends it to access `onScreenshot`. A typical skeleton looks like this:
+
+```kotlin
+@ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+abstract class MyScreenshotTest : ShowkaseScreenshotTest {
+
+    @get:Rule
+    override val composeTestRule = createComposeRule()
+
+    override fun onScreenshot(
+        id: String,
+        name: String,
+        group: String,
+        styleName: String?,
+        tags: List<String>,
+        extraMetadata: List<String>,
+        screenshotType: ShowkaseScreenshotType,
+        screenshotBitmap: Bitmap,
+    ) {
+        // Record or compare the bitmap with your chosen framework.
+    }
+}
+```
+
+<Warning>
+  If the class is not `abstract` or `open`, the annotation processor cannot generate a subclass and the build will fail.
+</Warning>
+
+## `ScreenshotCaptureConfig` and `ScreenshotCaptureType`
+
+For composables you can control how the screenshot is captured directly in `@ShowkaseComposable`:
+
+```kotlin
+@ShowkaseComposable(
+    name = "Animated Button",
+    group = "Buttons",
+    screenshotCaptureConfig = ScreenshotCaptureConfig(
+        type = ScreenshotCaptureType.SingleAnimatedImage,
+        durationMillis = 800,
+        framerate = 12,
+    )
+)
+@Composable
+fun AnimatedButtonPreview() { /* ... */ }
+```
+
+`ScreenshotCaptureConfig` fields:
+
+<ParamField path="type" type="ScreenshotCaptureType" required>
+  Determines how frames are captured. Defaults to `SingleStaticImage`.
+</ParamField>
+
+<ParamField path="durationMillis" type="Int">
+  Duration of the animation to capture in milliseconds. Used only when `type` is `SingleAnimatedImage`. Default: `1000`.
+</ParamField>
+
+<ParamField path="framerate" type="Int">
+  Frames per second to capture. Used only when `type` is `SingleAnimatedImage`. Default: `10` fps — chosen to balance fidelity, file size, test speed, and flakiness.
+</ParamField>
+
+<ParamField path="offsetsMillis" type="IntArray">
+  Time offsets (in milliseconds) at which to take individual static screenshots. Used only when `type` is `MultipleImagesAtOffsets`. Default: `[0, 200, 400, 600, 800, 1000]`.
+</ParamField>
+
+### `ScreenshotCaptureType` values
+
+| Value | Description |
+|---|---|
+| `SingleStaticImage` | Captures a single frame of the initial composition. This is the default. |
+| `SingleAnimatedImage` | Captures an animated PNG over the given `durationMillis` at the given `framerate`. Supported by Paparazzi. |
+| `MultipleImagesAtOffsets` | Captures one static screenshot at each time offset in `offsetsMillis`. |
+
+<Warning>
+  `MultipleImagesAtOffsets` has a known issue with Paparazzi and does not work correctly at this time. See the [Paparazzi integration page](/screenshot-testing/paparazzi) for details.
+</Warning>

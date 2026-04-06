@@ -1,97 +1,80 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Showkase"
+description: "An annotation-processor based Android library that helps you organize, discover, search, and visualize Jetpack Compose UI elements."
 ---
 
-## Setting up
+Showkase automatically generates a UI browser for your Jetpack Compose design system. With minimal setup, every component, color, and typography style in your codebase becomes searchable and previewable — including auto-generated permutations for dark mode, RTL, and font scaling.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get Showkase running in your project in under 5 minutes
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Installation" icon="download" href="/installation">
+    Add Showkase dependencies with kapt or KSP
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Annotations" icon="tag" href="/annotations/showkase-composable">
+    Learn how to annotate composables, colors, and typography
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Screenshot Testing" icon="camera" href="/screenshot-testing/overview">
+    Automate visual regression tests across all your UI elements
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Why Showkase?
 
-Everything you need to create world-class documentation.
+When building component-based UIs with Jetpack Compose, codebases quickly accumulate hundreds of components that become hard to find and visualize. Showkase solves this by turning your annotations into a living, searchable UI browser — with zero manual maintenance.
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+<CardGroup cols={2}>
+  <Card title="Auto-generated browser" icon="browser">
+    No manual catalog maintenance. Showkase generates the browser from your annotations at build time.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="5 auto-permutations" icon="grid-2">
+    Every component is automatically shown in light, dark, RTL, font-scaled, and display-scaled variants.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Works with @Preview" icon="eye">
+    Already using Compose @Preview? Showkase picks those up automatically — no re-annotation needed.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Multi-module support" icon="cubes">
+    Aggregate UI elements from all modules in your project into a single browser.
   </Card>
-</Columns>
+</CardGroup>
 
-## Need inspiration?
+## How it works
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<Steps>
+  <Step title="Add dependencies">
+    Add the Showkase runtime, annotation, and processor to your `build.gradle`.
+  </Step>
+  <Step title="Annotate your UI elements">
+    Use `@ShowkaseComposable`, `@ShowkaseColor`, and `@ShowkaseTypography` — or let existing `@Preview` annotations do the work.
+  </Step>
+  <Step title="Define a root module">
+    Create a class implementing `ShowkaseRootModule` and annotate it with `@ShowkaseRoot`.
+  </Step>
+  <Step title="Launch the browser">
+    Call `Showkase.getBrowserIntent(context)` to open the auto-generated UI browser anywhere in your app.
+  </Step>
+</Steps>
+
+## Explore the docs
+
+<CardGroup cols={3}>
+  <Card title="@ShowkaseComposable" icon="code" href="/annotations/showkase-composable">
+    Annotate composable functions for the browser
+  </Card>
+  <Card title="@ShowkaseColor" icon="palette" href="/annotations/showkase-color">
+    Expose color tokens from your design system
+  </Card>
+  <Card title="@ShowkaseTypography" icon="font" href="/annotations/showkase-typography">
+    Visualize TextStyle definitions
+  </Card>
+  <Card title="Multi-module setup" icon="diagram-project" href="/guides/multi-module">
+    Share UI elements across modules
+  </Card>
+  <Card title="Component styles" icon="layer-group" href="/guides/component-styles">
+    Document multiple variants of a single component
+  </Card>
+  <Card title="Metadata API" icon="database" href="/guides/metadata-api">
+    Access component metadata programmatically
+  </Card>
+</CardGroup>

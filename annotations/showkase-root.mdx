@@ -1,0 +1,100 @@
+---
+title: "@ShowkaseRoot"
+description: "Declare the root module entry point for aggregating Showkase UI elements across all modules."
+keywords: ["ShowkaseRoot", "ShowkaseRootModule", "annotation", "root module", "multi-module", "Showkase"]
+---
+
+`@ShowkaseRoot` marks a class that implements `ShowkaseRootModule` as the aggregation entry point for all Showkase UI elements in your project. Showkase uses this class to locate and combine composables, colors, and typography registered across all modules.
+
+## Signature
+
+```kotlin
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.CLASS)
+annotation class ShowkaseRoot
+```
+
+```kotlin
+interface ShowkaseRootModule
+```
+
+## Setup
+
+<Steps>
+  <Step title="Create the root class">
+    In your root module, create a class that implements `ShowkaseRootModule` and annotate it with `@ShowkaseRoot`:
+
+    ```kotlin
+    @ShowkaseRoot
+    class MyRootModule : ShowkaseRootModule
+    ```
+
+    The class body can be empty — it serves purely as a marker for the annotation processor.
+  </Step>
+
+  <Step title="Build the project">
+    Build your project once to let the annotation processor generate the `Showkase` extension functions. These are generated in the package of your root module.
+  </Step>
+
+  <Step title="Launch the Showkase browser">
+    Use the generated `getBrowserIntent` extension function to start the browser from anywhere in your app:
+
+    ```kotlin
+    startActivity(Showkase.getBrowserIntent(context))
+    ```
+  </Step>
+</Steps>
+
+## What is the root module?
+
+The root module is the module that has a compile-time dependency on every other module in your project — typically your `:app` module. Showkase generates its aggregated code in the package of the root module so that it can reference UI elements declared in all sub-modules.
+
+```
+:app  ←── @ShowkaseRoot lives here
+  ├── :feature-auth
+  │     └── @ShowkaseComposable, @ShowkaseColor
+  ├── :feature-home
+  │     └── @ShowkaseComposable, @ShowkaseTypography
+  └── :design-system
+        └── @ShowkaseColor, @ShowkaseTypography
+```
+
+<Warning>
+  You must have exactly one `@ShowkaseRoot`-annotated class per project. Placing it in any module other than the root module will prevent Showkase from accessing UI elements declared in sibling or child modules.
+</Warning>
+
+## Single-module projects
+
+If your project has only one module, add `@ShowkaseRoot` to that module:
+
+```kotlin
+@ShowkaseRoot
+class AppRootModule : ShowkaseRootModule
+```
+
+## Generated `Showkase` object
+
+After building, the processor generates extension functions on the `Showkase` object in the root module's package.
+
+| Function | Description |
+|---|---|
+| `Showkase.getBrowserIntent(context)` | Returns an `Intent` to start the Showkase browser activity. |
+| `Showkase.getMetadata()` | Returns a `ShowkaseElementsMetadata` object with lists of all registered components, colors, and typography. |
+
+### Example
+
+```kotlin
+// Launch the browser
+startActivity(Showkase.getBrowserIntent(context))
+
+// Access metadata programmatically
+val metadata = Showkase.getMetadata()
+val components = metadata.componentList
+val colors = metadata.colorList
+val typography = metadata.typographyList
+```
+
+<Tip>
+  `Showkase.getBrowserIntent` and `Showkase.getMetadata` are generated at build time. If your IDE cannot resolve them, build the project once to make them available.
+</Tip>

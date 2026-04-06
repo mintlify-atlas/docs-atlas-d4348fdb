@@ -1,0 +1,80 @@
+---
+title: "FAQ"
+description: "Answers to common questions about Showkase."
+---
+
+<AccordionGroup>
+  <Accordion title="Is Airbnb using Jetpack Compose in their main app?">
+    Yes. Airbnb has been one of the earliest adopters of Jetpack Compose and has been using it in production since early 2021. Compose is a core pillar of Airbnb's Android strategy, and the team continues to invest in tooling built on top of it. Airbnb [spoke about their experience](https://www.youtube.com/watch?v=23sNq-N06xU) using Jetpack Compose at Google I/O 2022.
+  </Accordion>
+
+  <Accordion title="Can I contribute to this library?">
+    Yes, pull requests are welcome. Browse through [open issues](https://github.com/airbnb/Showkase/issues) to find things that need work. If you have a feature request or bug, open a new issue so it can be tracked.
+  </Accordion>
+
+  <Accordion title="How do I provide feedback?">
+    The [issues tab](https://github.com/airbnb/Showkase/issues) on GitHub is the best place to provide feedback, report bugs, or request features.
+  </Accordion>
+
+  <Accordion title="Why are there separate annotations (@ShowkaseComposable, @ShowkaseColor, @ShowkaseTypography) instead of one?">
+    This was done primarily for future-proofing. Even though the three annotations share the same properties today, they may diverge as new features are added. Keeping them separate makes it possible to evolve each annotation independently without introducing breaking changes. If it turns out they don't need to diverge, consolidating them is still an option.
+  </Accordion>
+
+  <Accordion title="I want to customize my component browser. Can Showkase still help?">
+    Yes. Use `Showkase.getMetadata()` to access the full metadata for all your registered UI elements — composables, colors, and typography. You can use this data to build your own browser UI or feed it into other tooling such as screenshot tests.
+
+    ```kotlin
+    val metadata = Showkase.getMetadata()
+    val components = metadata.componentList
+    val colors = metadata.colorList
+    val typography = metadata.typographyList
+    ```
+  </Accordion>
+
+  <Accordion title="Why isn't getBrowserIntent() available after annotating my composables?">
+    `getBrowserIntent()` is an extension function that the Showkase processor generates at compile time. It won't exist until you build the project at least once after adding your annotations. Run a full build, and the function will be available.
+
+    ```kotlin
+    startActivity(Showkase.getBrowserIntent(context))
+    ```
+  </Accordion>
+
+  <Accordion title="Can I use Showkase in release builds?">
+    Yes. By default the recommended setup uses `debugImplementation`, which excludes Showkase from release builds. If you need it in release builds, use `implementation` with `ksp` or `kapt` instead:
+
+    ```kotlin
+    implementation "com.airbnb.android:showkase:1.0.5"
+    ksp "com.airbnb.android:showkase-processor:1.0.5"
+    ```
+
+    See the [KAPT vs KSP](/reference/kapt-vs-ksp) page for the full setup options.
+  </Accordion>
+
+  <Accordion title="What component types does Showkase support?">
+    Showkase supports three types of UI elements:
+
+    - **`@Composable` functions** — annotated with `@ShowkaseComposable` or `@Preview`
+    - **`Color` properties** — annotated with `@ShowkaseColor`
+    - **`TextStyle` properties** (typography) — annotated with `@ShowkaseTypography`
+  </Accordion>
+
+  <Accordion title="Does Showkase support private @Preview functions?">
+    No. Functions annotated with `@Preview` must be `internal` or `public` to be picked up by Showkase. This matches how the Compose tooling itself handles `@Preview`.
+
+    If you want to keep your preview functions private and skip them during processing, add the `skipPrivatePreviews` compiler flag:
+
+    ```kotlin
+    // KSP
+    ksp {
+        arg("skipPrivatePreviews", "true")
+    }
+
+    // KAPT
+    kapt {
+        arguments {
+            arg("skipPrivatePreviews", "true")
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>

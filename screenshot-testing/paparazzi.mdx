@@ -1,0 +1,169 @@
+---
+title: "Paparazzi Integration"
+description: "Run Showkase screenshot tests on the JVM with Paparazzi — no emulator or device required."
+---
+
+## Overview
+
+[Paparazzi](https://github.com/cashapp/paparazzi) renders Android views and Compose layouts using the Android layout engine on the JVM. This means screenshot tests run fast on any CI machine without requiring an emulator or a connected device.
+
+The `showkase-screenshot-testing-paparazzi` artifact provides the `PaparazziShowkaseScreenshotTest` interface. Showkase generates a parameterized test class that iterates over all registered components, colors, and typography entries and calls Paparazzi's snapshot API for each one.
+
+<Note>
+  Paparazzi requires your test module to be a **library module**. Screenshot tests placed in an application module will not work correctly with Paparazzi.
+</Note>
+
+## Add the dependency
+
+```kotlin
+// build.gradle.kts (library module)
+dependencies {
+    testImplementation("com.airbnb.android:showkase-screenshot-testing-paparazzi:1.0.5")
+}
+```
+
+You also need the Paparazzi Gradle plugin applied to the same module:
+
+```kotlin
+// build.gradle.kts
+plugins {
+    id("app.cash.paparazzi")
+}
+```
+
+## Set up your test class
+
+<Steps>
+  <Step title="Create an abstract test class">
+    Annotate it with `@ShowkaseScreenshot`, pointing to your `@ShowkaseRoot` class. Implement `PaparazziShowkaseScreenshotTest` and add a companion object that implements `PaparazziShowkaseScreenshotTest.CompanionObject`:
+
+    ```kotlin
+    @ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+    abstract class MyScreenshotTest : PaparazziShowkaseScreenshotTest {
+        companion object : PaparazziShowkaseScreenshotTest.CompanionObject
+    }
+    ```
+
+    The companion object provides the `Paparazzi` instance, device configs, layout directions, and UI modes used during test generation.
+  </Step>
+
+  <Step title="Customize Paparazzi configuration (optional)">
+    Override methods on the companion object to change how Paparazzi is configured:
+
+    ```kotlin
+    @ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+    abstract class MyScreenshotTest : PaparazziShowkaseScreenshotTest {
+        companion object : PaparazziShowkaseScreenshotTest.CompanionObject {
+
+            override fun providePaparazzi(): Paparazzi = Paparazzi(
+                maxPercentDifference = 0.1,
+                showSystemUi = false,
+                renderingMode = SessionParams.RenderingMode.SHRINK,
+            )
+
+            override fun deviceConfigs(): List<PaparazziShowkaseDeviceConfig> = listOf(
+                PaparazziShowkaseDeviceConfig(
+                    uniqueIdentifier = "Pixel6",
+                    deviceConfig = DeviceConfig.PIXEL_6,
+                ),
+            )
+
+            override fun layoutDirections(): List<LayoutDirection> = listOf(
+                LayoutDirection.Ltr,
+                LayoutDirection.Rtl,
+            )
+
+            override fun uiModes(): List<PaparazziShowkaseUIMode> = listOf(
+                PaparazziShowkaseUIMode.DEFAULT,
+                PaparazziShowkaseUIMode.DARK,
+            )
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Run the tests">
+    Run the generated tests with the standard Paparazzi Gradle tasks:
+
+    ```bash
+    # Record golden images
+    ./gradlew recordPaparazziDebug
+
+    # Verify against golden images
+    ./gradlew verifyPaparazziDebug
+    ```
+  </Step>
+</Steps>
+
+## Companion object API
+
+The `PaparazziShowkaseScreenshotTest.CompanionObject` interface exposes four overridable methods. All have sensible defaults so you only need to override what you want to change.
+
+| Method | Default | Description |
+|---|---|---|
+| `providePaparazzi()` | `Paparazzi(maxPercentDifference = 0.0, showSystemUi = false, renderingMode = SHRINK)` | Returns the `Paparazzi` instance used for all snapshots. |
+| `deviceConfigs()` | `[PaparazziShowkaseDeviceConfig()]` (Pixel 5) | The list of device configurations to test against. One test run is generated per device. |
+| `layoutDirections()` | `[LayoutDirection.Ltr]` | Layout directions to test. Add `LayoutDirection.Rtl` to catch RTL layout issues. |
+| `uiModes()` | `[PaparazziShowkaseUIMode.DEFAULT]` | UI modes to test. Add `PaparazziShowkaseUIMode.DARK` to capture dark mode screenshots. |
+
+### `PaparazziShowkaseDeviceConfig`
+
+A wrapper around Paparazzi's `DeviceConfig` that gives the device a human-readable identifier used in test and file names:
+
+```kotlin
+data class PaparazziShowkaseDeviceConfig(
+    val uniqueIdentifier: String = "Pixel5",
+    val deviceConfig: DeviceConfig = DeviceConfig.PIXEL_5,
+)
+```
+
+### `PaparazziShowkaseUIMode`
+
+```kotlin
+enum class PaparazziShowkaseUIMode {
+    DEFAULT,
+    DARK
+}
+```
+
+## Animated components
+
+For composables with animations, set `ScreenshotCaptureType.SingleAnimatedImage` in `@ShowkaseComposable`. Paparazzi will capture the component as an animated GIF over the specified duration:
+
+```kotlin
+@ShowkaseComposable(
+    name = "Loading Spinner",
+    group = "Indicators",
+    screenshotCaptureConfig = ScreenshotCaptureConfig(
+        type = ScreenshotCaptureType.SingleAnimatedImage,
+        durationMillis = 1200,
+        framerate = 15,
+    )
+)
+@Composable
+fun LoadingSpinnerPreview() {
+    LoadingSpinner()
+}
+```
+
+<Tip>
+  The default framerate is 10 fps, which balances image fidelity, file size, test execution time, and flakiness. Increase it only if the animation requires higher temporal resolution.
+</Tip>
+
+## `ScreenshotCaptureType` support matrix
+
+| Capture type | Paparazzi support |
+|---|---|
+| `SingleStaticImage` | Supported (default) |
+| `SingleAnimatedImage` | Supported — produces an animated GIF |
+| `MultipleImagesAtOffsets` | Not working — see known issue below |
+
+<Warning>
+  `MultipleImagesAtOffsets` is currently broken with Paparazzi due to an upstream issue. See [cashapp/paparazzi#1645](https://github.com/cashapp/paparazzi/pull/1645). Use `SingleAnimatedImage` or `SingleStaticImage` instead.
+</Warning>
+
+## How Paparazzi renders content
+
+The generated tests call `takePaparazziSnapshot`, which wraps each component in a `ComposeView` and passes it to Paparazzi. Before rendering, `PaparazziWrapper` sets up `CompositionLocal` values for inspection mode, density, configuration, layout direction, and the back-press dispatcher. This ensures components behave as they would in a real UI without crashing on missing providers.
+
+Dark mode is applied by modifying the `Configuration.uiMode` flag on the `LocalConfiguration` — no Activity or theme change is required.

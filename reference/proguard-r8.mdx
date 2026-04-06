@@ -1,0 +1,39 @@
+---
+title: "ProGuard & R8"
+description: "How Showkase handles code shrinking rules in release builds."
+---
+
+Showkase bundles consumer ProGuard rules directly inside its AAR artifact. When you add Showkase as a dependency, R8 reads these rules automatically — you do not need to add any manual ProGuard configuration.
+
+## Bundled rules
+
+The following rules are included in `showkase/consumer-rules.pro` and are applied automatically:
+
+```
+-keep public class * extends com.airbnb.android.showkase.models.ShowkaseProvider
+```
+
+This rule prevents R8 from stripping the generated `ShowkaseProvider` implementations that the processor creates at compile time. Without this rule, the generated code would be removed during release builds, causing the Showkase browser to show no components.
+
+## When this matters
+
+Consumer ProGuard rules apply whenever R8 is run against your app — typically in release builds or any build variant with `minifyEnabled true`.
+
+<Note>
+  If you added Showkase as `debugImplementation` (the recommended setup), the library and its ProGuard rules are excluded from release builds entirely. The rules only become relevant if you use `implementation` to include Showkase in release builds as well.
+</Note>
+
+## Debug-only vs. always-on
+
+| Dependency configuration | ProGuard rules apply? |
+| ------------------------ | --------------------- |
+| `debugImplementation`    | No — library is not included in release |
+| `implementation`         | Yes — rules are applied automatically by R8 |
+
+## No manual steps required
+
+Because the rules ship inside the AAR as consumer rules, R8 picks them up without any additional configuration in your `proguard-rules.pro` file. This is standard Android behavior for libraries that bundle consumer rules.
+
+<Tip>
+  If you are auditing your release build's ProGuard output and want to verify the rule is active, search your merged ProGuard configuration for `ShowkaseProvider`. You can generate a merged config by adding `printconfiguration merged-config.txt` to your module's `proguard-rules.pro`.
+</Tip>

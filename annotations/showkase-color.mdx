@@ -1,0 +1,105 @@
+---
+title: "@ShowkaseColor"
+description: "Annotate Color properties to display them in the Showkase browser."
+keywords: ["ShowkaseColor", "annotation", "color", "design system", "Showkase"]
+---
+
+`@ShowkaseColor` marks a `Color` property for display in the Showkase browser. Apply it to any `val` or `var` of type `androidx.compose.ui.graphics.Color`.
+
+## Signature
+
+```kotlin
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.FIELD)
+annotation class ShowkaseColor(
+    val name: String = "",
+    val group: String = "",
+)
+```
+
+<Note>
+  The annotation targets `AnnotationTarget.FIELD`, so it must be applied to a property declaration (`val` or `var`), not a function or class.
+</Note>
+
+## Parameters
+
+<ParamField path="name" type="String" default='""'>
+  The display name for the color in the browser. When omitted, Showkase uses the property name.
+</ParamField>
+
+<ParamField path="group" type="String" default='""'>
+  Groups this color with others in the browser. When omitted, Showkase uses the enclosing class name. For top-level properties, the default group is `"Default Group"`.
+</ParamField>
+
+## Usage
+
+### Named color with explicit name and group
+
+```kotlin
+@ShowkaseColor(name = "Primary Color", group = "Material Design")
+val primaryColor = Color(0xFF6200EE)
+```
+
+### Using a `Color` constant
+
+```kotlin
+@ShowkaseColor(name = "Red", group = "Palette")
+val redColor = Color.Red
+```
+
+### Positional arguments
+
+```kotlin
+@ShowkaseColor("Primary", "Light Colors")
+val primaryColor = Color(0xFF6200EE)
+```
+
+### Omitting name and group
+
+When both parameters are omitted, Showkase derives defaults from the context:
+
+```kotlin
+// Name: "brandPrimary" (property name)
+// Group: enclosing class name, or "Default Group" if top-level
+@ShowkaseColor
+val brandPrimary = Color(0xFF0057FF)
+```
+
+## Organizing colors by group
+
+Group related colors together by using the same `group` value:
+
+```kotlin
+@ShowkaseColor(name = "Primary", group = "Light Theme")
+val lightPrimary = Color(0xFF6200EE)
+
+@ShowkaseColor(name = "Secondary", group = "Light Theme")
+val lightSecondary = Color(0xFF03DAC6)
+
+@ShowkaseColor(name = "Primary", group = "Dark Theme")
+val darkPrimary = Color(0xFFBB86FC)
+
+@ShowkaseColor(name = "Secondary", group = "Dark Theme")
+val darkSecondary = Color(0xFF03DAC6)
+```
+
+## Annotating inside a class or object
+
+When defined inside a class or companion object, the group defaults to the enclosing class name if `group` is not set:
+
+```kotlin
+object AppColors {
+    @ShowkaseColor(name = "Brand Blue")
+    // Group defaults to "AppColors"
+    val brandBlue = Color(0xFF1A73E8)
+
+    @ShowkaseColor(name = "Brand Red")
+    // Group defaults to "AppColors"
+    val brandRed = Color(0xFFD93025)
+}
+```
+
+<Tip>
+  Keeping your colors inside a dedicated object or class gives them a meaningful default group automatically, reducing the annotation boilerplate.
+</Tip>

@@ -1,0 +1,83 @@
+---
+title: "Preview Parameters"
+description: "Drive multiple Showkase previews from a single composable using @PreviewParameter."
+---
+
+By default, composables registered with Showkase must not accept parameters. When your component needs data to render, you have two options:
+
+1. **`@PreviewParameter`** — annotate the parameter with Compose's `@PreviewParameter` and supply a `PreviewParameterProvider`. Showkase generates one preview per value in the provider's sequence.
+2. **Wrapper function** — create a no-parameter composable that calls your component with hard-coded data.
+
+## Option 1: @PreviewParameter
+
+Define a `PreviewParameterProvider` that produces the values you want to preview, then annotate the composable parameter with `@PreviewParameter`.
+
+```kotlin
+// Data model
+data class Person(
+    val name: String,
+    val age: Int,
+)
+
+// Parameter provider — one preview is generated for each value
+class ParameterProvider : PreviewParameterProvider<Person> {
+    override val values: Sequence<Person>
+        get() = sequenceOf(
+            Person("John", 12),
+            Person("Doe", 20),
+        )
+}
+
+// Composable registered with Showkase
+@ShowkaseComposable(name = "Person Card", group = "Cards")
+@Composable
+fun PersonCardPreview(
+    @PreviewParameter(provider = ParameterProvider::class) person: Person,
+) {
+    PersonCard(person = person)
+}
+```
+
+Because `ParameterProvider` returns two values, Showkase creates **two separate previews** for `PersonCardPreview`:
+
+- One rendered with `Person("John", 12)`
+- One rendered with `Person("Doe", 20)`
+
+This is an effective way to verify your component against different data states — empty names, long strings, edge-case ages — without duplicating preview functions.
+
+<Note>
+  This behaviour is identical to how `@PreviewParameter` works in Android Studio's built-in `@Preview`. Showkase follows the same contract.
+</Note>
+
+## Option 2: wrapper function
+
+If you only need one or two fixed data states, a no-parameter wrapper is simpler:
+
+```kotlin
+// Original component that requires parameters
+@Composable
+fun PersonCard(person: Person) {
+    // ...
+}
+
+// Wrapper registered with Showkase
+@ShowkaseComposable(name = "Person Card", group = "Cards")
+@Composable
+fun PersonCardPreview() {
+    PersonCard(person = Person("John", 12))
+}
+```
+
+Each wrapper produces exactly one preview. Create one wrapper function per data state you want to visualize.
+
+## Choosing between the two approaches
+
+| | `@PreviewParameter` | Wrapper function |
+|---|---|---|
+| Number of previews | One per value in the sequence | One per wrapper function |
+| Good for | Many data states, table-driven testing | A few fixed states |
+| Reuses provider? | Yes — share the same provider across tests | No |
+
+<Tip>
+  `PreviewParameterProvider` implementations can be shared between Showkase previews and screenshot tests, making them a good investment when you have components that need to be verified against a range of data.
+</Tip>

@@ -1,0 +1,148 @@
+---
+title: "Installation"
+description: "Add the Showkase dependencies to your Android project using kapt or KSP."
+---
+
+## Artifacts
+
+Showkase is distributed as three separate Maven artifacts:
+
+| Artifact | Purpose |
+|---|---|
+| `showkase` | The UI browser Activity and runtime classes |
+| `showkase-annotation` | The `@ShowkaseComposable`, `@ShowkaseColor`, `@ShowkaseTypography`, and `@ShowkaseRoot` annotations |
+| `showkase-processor` | The annotation processor (kapt or KSP) that generates the browser code |
+
+Current version: **1.0.5** — Compatible with Compose **1.6.7**
+
+## Debug-only setup (recommended)
+
+For most projects, you only need the Showkase browser in debug builds. This keeps the browser Activity and generated code out of your release APK entirely.
+
+<Tabs>
+  <Tab title="KSP">
+    ```kotlin build.gradle.kts
+    dependencies {
+        debugImplementation("com.airbnb.android:showkase:1.0.5")
+        implementation("com.airbnb.android:showkase-annotation:1.0.5")
+        kspDebug("com.airbnb.android:showkase-processor:1.0.5")
+    }
+    ```
+
+    ```groovy build.gradle
+    dependencies {
+        debugImplementation 'com.airbnb.android:showkase:1.0.5'
+        implementation 'com.airbnb.android:showkase-annotation:1.0.5'
+        kspDebug 'com.airbnb.android:showkase-processor:1.0.5'
+    }
+    ```
+  </Tab>
+  <Tab title="kapt">
+    ```kotlin build.gradle.kts
+    dependencies {
+        debugImplementation("com.airbnb.android:showkase:1.0.5")
+        implementation("com.airbnb.android:showkase-annotation:1.0.5")
+        kaptDebug("com.airbnb.android:showkase-processor:1.0.5")
+    }
+    ```
+
+    ```groovy build.gradle
+    dependencies {
+        debugImplementation 'com.airbnb.android:showkase:1.0.5'
+        implementation 'com.airbnb.android:showkase-annotation:1.0.5'
+        kaptDebug 'com.airbnb.android:showkase-processor:1.0.5'
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  `showkase-annotation` uses `implementation` (not `debugImplementation`) so that annotation
+  classes are present in all build variants. Your annotated composables compile correctly in
+  release builds even though the browser Activity is not included.
+</Note>
+
+## Always-on setup
+
+If you need the Showkase browser available in release builds (for example, in an internal distribution build):
+
+<Tabs>
+  <Tab title="KSP">
+    ```kotlin build.gradle.kts
+    dependencies {
+        implementation("com.airbnb.android:showkase:1.0.5")
+        implementation("com.airbnb.android:showkase-annotation:1.0.5")
+        ksp("com.airbnb.android:showkase-processor:1.0.5")
+    }
+    ```
+
+    ```groovy build.gradle
+    dependencies {
+        implementation 'com.airbnb.android:showkase:1.0.5'
+        implementation 'com.airbnb.android:showkase-annotation:1.0.5'
+        ksp 'com.airbnb.android:showkase-processor:1.0.5'
+    }
+    ```
+  </Tab>
+  <Tab title="kapt">
+    ```kotlin build.gradle.kts
+    dependencies {
+        implementation("com.airbnb.android:showkase:1.0.5")
+        implementation("com.airbnb.android:showkase-annotation:1.0.5")
+        kapt("com.airbnb.android:showkase-processor:1.0.5")
+    }
+    ```
+
+    ```groovy build.gradle
+    dependencies {
+        implementation 'com.airbnb.android:showkase:1.0.5'
+        implementation 'com.airbnb.android:showkase-annotation:1.0.5'
+        kapt 'com.airbnb.android:showkase-processor:1.0.5'
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Multi-module projects
+
+If your project has multiple modules with Compose UI elements, add the dependency block to **each module** that contains annotated elements:
+
+```kotlin build.gradle.kts
+// In each feature module:
+dependencies {
+    debugImplementation("com.airbnb.android:showkase:1.0.5")
+    implementation("com.airbnb.android:showkase-annotation:1.0.5")
+    kspDebug("com.airbnb.android:showkase-processor:1.0.5")
+}
+```
+
+The `@ShowkaseRoot` annotation goes only in your root (app) module. See the [multi-module guide](/guides/multi-module) for the full setup.
+
+## Incremental annotation processing
+
+Showkase's annotation processor supports incremental processing, which means only changed files are reprocessed on subsequent builds. This is enabled automatically — no additional configuration is required.
+
+<Tip>
+  KSP is generally faster than kapt and has better support for stacked repeatable annotations
+  (such as multiple `@Preview` on a single composable). See the [kapt vs KSP reference](/reference/kapt-vs-ksp)
+  for a detailed comparison.
+</Tip>
+
+## R8 / ProGuard
+
+No additional ProGuard rules are needed. The required consumer rules are bundled inside the `showkase` AAR and are applied automatically when R8 processes your app.
+
+## Verify the installation
+
+After adding the dependencies, build the project once. The processor generates a `getBrowserIntent` extension function on the `Showkase` object. Once the build succeeds, you can launch the browser from anywhere in your app:
+
+```kotlin
+import com.airbnb.android.showkase.models.Showkase
+
+startActivity(Showkase.getBrowserIntent(context))
+```
+
+<Warning>
+  `Showkase.getBrowserIntent` is only generated after a successful build that includes the
+  processor. If your IDE reports an unresolved reference, run a full Gradle build first.
+</Warning>

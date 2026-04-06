@@ -1,0 +1,159 @@
+---
+title: "Shot Integration"
+description: "Run Showkase screenshot tests as instrumented tests on a real device or emulator using Shot."
+---
+
+## Overview
+
+[Shot](https://github.com/pedrovgs/Shot) is an instrumented screenshot testing library built on top of Facebook's screenshot testing tooling. Unlike Paparazzi, Shot tests run on a real Android device or emulator, which means the rendering is pixel-perfect and matches what users actually see — including fonts, hardware acceleration, and platform-specific rendering.
+
+The `showkase-screenshot-testing-shot` artifact provides `ShotShowkaseScreenshotTest`, an abstract class that wires Showkase's screenshot pipeline into Shot's `compareScreenshot` API.
+
+## Add the dependency
+
+```kotlin
+// build.gradle.kts
+dependencies {
+    androidTestImplementation("com.airbnb.android:showkase-screenshot-testing-shot:1.0.5")
+}
+```
+
+You also need the Shot Gradle plugin and its test runner configured in your module:
+
+```kotlin
+// build.gradle.kts
+plugins {
+    id("shot")
+}
+
+android {
+    defaultConfig {
+        testInstrumentationRunner = "com.karumi.shot.ShotTestRunner"
+    }
+    shot {
+        applicationId = "com.example.myapp"
+    }
+}
+```
+
+## Set up your test class
+
+<Steps>
+  <Step title="Create an abstract test class">
+    Extend `ShotShowkaseScreenshotTest` and annotate the class with `@ShowkaseScreenshot`, providing your `@ShowkaseRoot` class:
+
+    ```kotlin
+    @ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+    abstract class MyScreenshotTest : ShotShowkaseScreenshotTest()
+    ```
+
+    Place this file in `src/androidTest/`. Showkase generates a concrete subclass that loops through all registered UI elements and calls `onScreenshot` for each one.
+  </Step>
+
+  <Step title="Record golden images">
+    Run the Shot record task to generate the initial golden screenshots on a connected device or emulator:
+
+    ```bash
+    ./gradlew executeScreenshotTests -Precord
+    ```
+
+    Golden images are stored in `screenshots/` by default.
+  </Step>
+
+  <Step title="Verify screenshots in CI">
+    On subsequent runs, Shot compares each captured screenshot against its golden image:
+
+    ```bash
+    ./gradlew executeScreenshotTests
+    ```
+
+    The build fails if any screenshot differs from its golden.
+  </Step>
+</Steps>
+
+## How `ShotShowkaseScreenshotTest` works
+
+`ShotShowkaseScreenshotTest` is a concrete abstract class that already implements `onScreenshot` for you. It calls Shot's `compareScreenshot(composeTestRule)` using the active `ComposeContentTestRule`:
+
+```kotlin
+abstract class ShotShowkaseScreenshotTest : ShowkaseScreenshotTest, ScreenshotTest {
+
+    override fun onScreenshot(
+        id: String,
+        name: String,
+        group: String,
+        styleName: String?,
+        tags: List<String>,
+        extraMetadata: List<String>,
+        screenshotType: ShowkaseScreenshotType,
+        screenshotBitmap: Bitmap,
+    ) {
+        compareScreenshot(composeTestRule)
+    }
+}
+```
+
+You do not need to override `onScreenshot` unless you want custom behavior such as naming or filtering. The `composeTestRule` used here is the one declared as a `@get:Rule` on `ShowkaseScreenshotTest` — Shot captures the entire compose hierarchy rendered by that rule.
+
+## Providing the `composeTestRule`
+
+`ShowkaseScreenshotTest` declares `composeTestRule` as an abstract `@get:Rule` property. When extending `ShotShowkaseScreenshotTest` you still need to provide it:
+
+```kotlin
+@ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+abstract class MyScreenshotTest : ShotShowkaseScreenshotTest() {
+
+    @get:Rule
+    override val composeTestRule = createComposeRule()
+}
+```
+
+## Customizing `onScreenshot`
+
+If you need to control naming or skip certain elements, override `onScreenshot` in your class:
+
+```kotlin
+@ShowkaseScreenshot(rootShowkaseClass = MyRootModule::class)
+abstract class MyScreenshotTest : ShotShowkaseScreenshotTest() {
+
+    @get:Rule
+    override val composeTestRule = createComposeRule()
+
+    override fun onScreenshot(
+        id: String,
+        name: String,
+        group: String,
+        styleName: String?,
+        tags: List<String>,
+        extraMetadata: List<String>,
+        screenshotType: ShowkaseScreenshotType,
+        screenshotBitmap: Bitmap,
+    ) {
+        val screenshotName = "$group/$name${styleName?.let { "_$it" } ?: ""}"
+        compareScreenshot(composeTestRule, name = screenshotName)
+    }
+}
+```
+
+## Paparazzi vs Shot
+
+<Tabs>
+  <Tab title="Paparazzi">
+    - Runs on the JVM — no device or emulator needed
+    - Faster iteration and CI execution
+    - Rendering is an approximation; subtle platform differences may not be caught
+    - Supports animated GIF capture via `SingleAnimatedImage`
+    - Requires a **library module**
+  </Tab>
+  <Tab title="Shot">
+    - Runs on a real device or emulator
+    - Pixel-perfect rendering that matches actual user experience
+    - Slower due to emulator startup and instrumented test execution
+    - Does not support animated capture
+    - Can be used in application modules
+  </Tab>
+</Tabs>
+
+<Tip>
+  For most teams, Paparazzi is the faster default choice for catching regressions. Use Shot when rendering fidelity is critical — for example, when testing components that rely on hardware-accelerated drawing or platform-specific font rendering.
+</Tip>

@@ -1,0 +1,250 @@
+---
+title: "@ShowkaseComposable"
+description: "Annotate Composable functions to display them in the Showkase browser."
+keywords: ["ShowkaseComposable", "annotation", "composable", "preview", "Showkase"]
+---
+
+`@ShowkaseComposable` marks a `@Composable` function for display in the Showkase browser. It supports custom names, grouping, size constraints, style variants, and screenshot capture configuration.
+
+If you already use `@Preview` from Jetpack Compose, Showkase has first-class support for it — you don't need to add `@ShowkaseComposable` separately.
+
+## Signature
+
+```kotlin
+@MustBeDocumented
+@Retention(AnnotationRetention.SOURCE)
+@Target(AnnotationTarget.FUNCTION)
+@Repeatable
+annotation class ShowkaseComposable(
+    val name: String = "",
+    val group: String = "",
+    val styleName: String = "",
+    val widthDp: Int = -1,
+    val heightDp: Int = -1,
+    val skip: Boolean = false,
+    val defaultStyle: Boolean = false,
+    val tags: Array<String> = [],
+    val extraMetadata: Array<String> = [],
+    val screenshotCaptureConfig: ScreenshotCaptureConfig = ScreenshotCaptureConfig(...)
+)
+```
+
+## Parameters
+
+<ParamField path="name" type="String" default='""'>
+  The display name for the composable in the browser. When omitted, Showkase uses the function name.
+</ParamField>
+
+<ParamField path="group" type="String" default='""'>
+  Groups this composable with others in the browser. When omitted, Showkase uses the enclosing class name. For top-level functions, the default group is `"Default Group"`.
+</ParamField>
+
+<ParamField path="styleName" type="String" default='""'>
+  The name of the style variant this composable represents. Use together with `defaultStyle` to document multiple visual variants of the same component on a single screen in the browser. See [component styles](#representing-component-styles).
+</ParamField>
+
+<ParamField path="widthDp" type="Int" default="-1">
+  The width in dp at which the component is rendered inside the browser. `-1` means unconstrained.
+</ParamField>
+
+<ParamField path="heightDp" type="Int" default="-1">
+  The height in dp at which the component is rendered inside the browser. `-1` means unconstrained.
+</ParamField>
+
+<ParamField path="skip" type="Boolean" default="false">
+  When `true`, excludes this composable from the Showkase browser. Use this when you want `@Preview` thumbnails in Android Studio but don't want the component appearing in the generated browser.
+</ParamField>
+
+<ParamField path="defaultStyle" type="Boolean" default="false">
+  Marks this composable as the default style variant of a component. Used alongside `styleName` on other variants to group them together in the browser.
+</ParamField>
+
+<ParamField path="tags" type="Array<String>" default="[]">
+  Arbitrary string tags propagated to the browser for additional filtering or categorization.
+</ParamField>
+
+<ParamField path="extraMetadata" type="Array<String>" default="[]">
+  Arbitrary string values available on the generated `ShowkaseBrowserComponent` object, but not used by the standard Showkase browser. Useful for static analysis, custom browsers, or attribution workflows.
+</ParamField>
+
+<ParamField path="screenshotCaptureConfig" type="ScreenshotCaptureConfig">
+  Controls how Paparazzi captures screenshots during testing. See [`ScreenshotCaptureConfig`](#screenshotcaptureconfig) below.
+</ParamField>
+
+## Basic usage
+
+```kotlin
+@ShowkaseComposable(name = "Primary Button", group = "Buttons")
+@Composable
+fun PrimaryButtonPreview() {
+    PrimaryButton(label = "Click me")
+}
+```
+
+## Using `@Preview` instead
+
+Showkase picks up `@Preview` annotations automatically — no additional annotation required:
+
+```kotlin
+@Preview(name = "Primary Button", group = "Buttons")
+@Composable
+fun PrimaryButtonPreview() {
+    PrimaryButton(label = "Click me")
+}
+```
+
+<Warning>
+  Stacking `@Preview` and `@ShowkaseComposable` on the same function requires KSP. KAPT does not support repeatable annotations correctly due to [KT-49682](https://youtrack.jetbrains.com/issue/KT-49682).
+</Warning>
+
+## Wrapping parameterized composables
+
+Showkase requires annotated functions to have no parameters (or use `@PreviewParameter`). Wrap composables that take arguments:
+
+```kotlin
+// Original composable with parameters
+@Composable
+fun MyComposable(name: String) {
+    Text(text = "Hello, $name!")
+}
+
+// Wrapper for Showkase
+@ShowkaseComposable(name = "My Composable", group = "Text")
+@Composable
+fun MyComposablePreview() {
+    MyComposable("World")
+}
+```
+
+## Using `@PreviewParameter`
+
+For data-driven previews, annotate a single parameter with `@PreviewParameter`. Showkase generates one preview per value in the provider:
+
+```kotlin
+data class Person(val name: String, val age: Int)
+
+class PersonProvider : PreviewParameterProvider<Person> {
+    override val values: Sequence<Person>
+        get() = sequenceOf(
+            Person("Alice", 30),
+            Person("Bob", 25)
+        )
+}
+
+@ShowkaseComposable(name = "Person Card", group = "Cards")
+@Composable
+fun PersonCardPreview(
+    @PreviewParameter(provider = PersonProvider::class) person: Person
+) {
+    PersonCard(person)
+}
+```
+
+This produces two previews — one for each `Person` instance.
+
+## Skipping private previews
+
+By default, private `@Preview` functions must be `internal` or `public` to appear in Showkase. To silently skip private previews instead of failing, pass the `skipPrivatePreviews` compiler argument:
+
+<Tabs>
+  <Tab title="KSP">
+    ```kotlin
+    ksp {
+        arg("skipPrivatePreviews", "true")
+    }
+    ```
+  </Tab>
+  <Tab title="KAPT">
+    ```kotlin
+    kapt {
+        arguments {
+            arg("skipPrivatePreviews", "true")
+        }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Representing component styles
+
+Use `styleName` and `defaultStyle` to group multiple style variants of the same component on one screen in the browser:
+
+```kotlin
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", defaultStyle = true)
+@Composable
+fun Preview_CustomButton_Large() {
+    CustomButton(size = ButtonSize.Large)
+}
+
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", styleName = "Medium size")
+@Composable
+fun Preview_CustomButton_Medium() {
+    CustomButton(size = ButtonSize.Medium)
+}
+
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", styleName = "Small size")
+@Composable
+fun Preview_CustomButton_Small() {
+    CustomButton(size = ButtonSize.Small)
+}
+```
+
+<Tip>
+  All variants share the same `name` and `group`. The `defaultStyle = true` variant is displayed first. Each non-default variant must set a unique `styleName`.
+</Tip>
+
+## `ScreenshotCaptureConfig`
+
+Controls Paparazzi-based screenshot testing behavior for a composable.
+
+```kotlin
+@Retention(AnnotationRetention.SOURCE)
+annotation class ScreenshotCaptureConfig(
+    val type: ScreenshotCaptureType = ScreenshotCaptureType.SingleStaticImage,
+    val durationMillis: Int = 1000,
+    val framerate: Int = 10,
+    val offsetsMillis: IntArray = [0, 200, 400, 600, 800, 1000],
+)
+```
+
+<ParamField path="type" type="ScreenshotCaptureType" default="ScreenshotCaptureType.SingleStaticImage">
+  Determines how the screenshot is captured. See `ScreenshotCaptureType` values below.
+</ParamField>
+
+<ParamField path="durationMillis" type="Int" default="1000">
+  Duration in milliseconds for animated captures. Only used when `type` is `SingleAnimatedImage`.
+</ParamField>
+
+<ParamField path="framerate" type="Int" default="10">
+  Frames per second for animated captures. Only used when `type` is `SingleAnimatedImage`. Defaults to 10 fps to balance fidelity, file size, and test stability.
+</ParamField>
+
+<ParamField path="offsetsMillis" type="IntArray" default="[0, 200, 400, 600, 800, 1000]">
+  Time offsets at which individual screenshots are taken. Only used when `type` is `MultipleImagesAtOffsets`.
+</ParamField>
+
+### `ScreenshotCaptureType` values
+
+| Value | Description |
+|---|---|
+| `SingleStaticImage` | Captures a single screenshot of the initial composition. |
+| `SingleAnimatedImage` | Captures an animated PNG using `durationMillis` and `framerate`. |
+| `MultipleImagesAtOffsets` | Captures one static screenshot at each offset in `offsetsMillis`. |
+
+### Example: animated capture
+
+```kotlin
+@ShowkaseComposable(
+    name = "Loading Spinner",
+    group = "Feedback",
+    screenshotCaptureConfig = ScreenshotCaptureConfig(
+        type = ScreenshotCaptureType.SingleAnimatedImage,
+        durationMillis = 2000,
+        framerate = 24,
+    )
+)
+@Composable
+fun LoadingSpinnerPreview() {
+    LoadingSpinner()
+}
+```

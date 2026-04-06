@@ -1,0 +1,89 @@
+---
+title: "Multi-Module Support"
+description: "Use Showkase across Android multi-module projects with a single aggregation point."
+---
+
+Showkase is designed to work across multi-module Android projects. UI elements annotated in any module are automatically discovered and aggregated into a single browser, as long as each module has the required dependencies and one root module declares `@ShowkaseRoot`.
+
+## How it works
+
+- **Every module** that contains annotated UI elements (composables, colors, typography) needs the Showkase dependencies and annotation processor.
+- **Only one module** — the root module — declares the `@ShowkaseRoot` class. This is the module that has a transitive dependency on all other modules and is where Showkase generates the aggregated code.
+
+## Setup
+
+The example below shows a project with two modules: `:app` (the root) and `:feature-ui` (a feature module with shared UI components).
+
+<Steps>
+  <Step title="Add dependencies to every module with UI elements">
+    In **both** `:app/build.gradle` and `:feature-ui/build.gradle`, add the Showkase dependencies:
+
+    ```kotlin
+    // Recommended: debug-only
+    debugImplementation("com.airbnb.android:showkase:1.0.5")
+    implementation("com.airbnb.android:showkase-annotation:1.0.5")
+    kspDebug("com.airbnb.android:showkase-processor:1.0.5")
+    // or: kaptDebug("com.airbnb.android:showkase-processor:1.0.5")
+    ```
+
+    Both modules need the annotation processor so that Showkase can discover the annotated elements in each module at compile time.
+  </Step>
+
+  <Step title="Annotate UI elements in each module">
+    In `:feature-ui`, annotate your composables, colors, and typography as usual:
+
+    ```kotlin
+    // feature-ui/src/main/.../FeatureComponents.kt
+
+    @ShowkaseComposable(name = "Feature Button", group = "Feature UI")
+    @Composable
+    fun FeatureButtonPreview() {
+        FeatureButton(label = "Submit")
+    }
+
+    @ShowkaseColor(name = "Feature Primary", group = "Feature UI")
+    val featurePrimary = Color(0xFF0057FF)
+    ```
+  </Step>
+
+  <Step title="Define @ShowkaseRoot in the root module only">
+    In `:app` — the module that depends on all other modules — create a class that implements `ShowkaseRootModule` and annotate it with `@ShowkaseRoot`:
+
+    ```kotlin
+    // app/src/main/.../AppRootModule.kt
+
+    @ShowkaseRoot
+    class AppRootModule : ShowkaseRootModule
+    ```
+
+    This class can be empty. Its sole purpose is to mark the aggregation point for Showkase code generation.
+  </Step>
+
+  <Step title="Launch the Showkase browser">
+    Build the project once so that the generated extension functions become available, then start the browser from anywhere in your `:app` module:
+
+    ```kotlin
+    startActivity(Showkase.getBrowserIntent(context))
+    ```
+
+    The browser will include all annotated elements from every module.
+  </Step>
+</Steps>
+
+## What "root module" means
+
+The root module is the module that has a direct or transitive dependency on **all other modules** in the project — typically `:app`. Showkase generates its aggregation classes inside the package of this root module because it needs to be able to reference the UI elements discovered across all sub-modules.
+
+```
+:app  ──depends on──▶  :feature-ui
+  │
+  └── @ShowkaseRoot lives here
+```
+
+<Warning>
+  `@ShowkaseRoot` must appear **exactly once** across your entire project. Defining it in more than one module will cause a compilation error.
+</Warning>
+
+<Note>
+  The `:feature-ui` module does **not** need to declare `@ShowkaseRoot`. It only needs the dependencies and annotations on its UI elements.
+</Note>

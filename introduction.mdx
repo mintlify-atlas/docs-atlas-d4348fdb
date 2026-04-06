@@ -1,0 +1,56 @@
+---
+title: "Introduction"
+description: "Showkase is an annotation-processor based Android library that helps you organize, discover, search, and visualize Jetpack Compose UI elements."
+---
+
+## What is Showkase?
+
+Showkase is an open-source Android library from Airbnb that automatically generates a UI browser for your Jetpack Compose components, colors, and typography — with minimal configuration.
+
+In component-based UI systems like Compose, codebases often grow to hundreds of UI elements that become hard to find, reuse, or review. Showkase solves this by generating a fully navigable in-app browser from your existing annotations, eliminating the need to manually maintain a separate design system preview app.
+
+## Why use Showkase?
+
+- **Discoverability**: All annotated UI elements are searchable by name or group, making it easy to find and reuse components before building new ones.
+- **Faster iteration**: Visualize `@Composable` components, `Color` properties, and `TextStyle` values as you build them, without waiting for a full app build.
+- **Catch issues early**: Auto-generated permutations surface common rendering problems in dark mode, RTL layouts, and at different font and display scales before they reach production.
+- **Zero maintenance**: Showkase generates the browser from your annotations — there is no separate preview app to keep in sync.
+
+## Key features
+
+- **Auto-generated UI browser** — Components, colors, and typography are browsable and searchable in a generated Activity launched from anywhere in your app.
+- **First-class `@Preview` support** — Any composable already annotated with Jetpack Compose's `@Preview` is automatically included; no migration required.
+- **5 auto-generated permutations** — Each composable is rendered in five variants: basic, dark mode, RTL, font scaled, and display scaled.
+- **Component styles** — Use `styleName` and `defaultStyle` to group multiple style variants of a component onto a single screen in the browser.
+- **KDoc in the browser** — Documentation you write for a component appears alongside it in the Showkase browser.
+- **Multi-module support** — Collect UI elements across all modules in a multi-module project via a single `@ShowkaseRoot` entry point.
+- **Screenshot testing hooks** — Use `Showkase.getMetadata()` to access component metadata for screenshot testing pipelines (e.g. Paparazzi, Shot).
+- **Incremental annotation processing** — Supports both kapt and KSP with incremental processing for faster builds.
+- **`@PreviewParameter` support** — Pass data providers to composables to generate multiple previews from a single annotated function.
+
+## Annotations at a glance
+
+| Annotation | What it registers |
+|---|---|
+| `@ShowkaseComposable` | A `@Composable` function to display in the browser |
+| `@Preview` | Same as above — Showkase reads existing `@Preview` annotations |
+| `@ShowkaseColor` | A `Color` property to display in the browser |
+| `@ShowkaseTypography` | A `TextStyle` property to display in the browser |
+| `@ShowkaseRoot` | Marks the root module that aggregates all elements |
+
+## Get started
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Set up Showkase in your project in four steps and launch the browser.
+  </Card>
+  <Card title="Installation" icon="wrench" href="/installation">
+    Detailed dependency setup for kapt and KSP, debug-only and release builds.
+  </Card>
+  <Card title="@ShowkaseComposable" icon="code" href="/annotations/showkase-composable">
+    All properties of the core composable annotation.
+  </Card>
+  <Card title="Multi-module setup" icon="cubes" href="/guides/multi-module">
+    How to aggregate UI elements across multiple Gradle modules.
+  </Card>
+</CardGroup>

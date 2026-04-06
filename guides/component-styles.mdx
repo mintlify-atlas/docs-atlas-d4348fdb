@@ -1,0 +1,66 @@
+---
+title: "Component Styles"
+description: "Document multiple visual variants of the same component using styleName and defaultStyle."
+---
+
+Many components support multiple visual variants — different sizes, color schemes, or densities — that all belong to the same logical component. Rather than treating each variant as an entirely separate component, Showkase lets you group them together using the `styleName` and `defaultStyle` properties of `@ShowkaseComposable`.
+
+When variants share the same `name` and `group`, Showkase displays them together on a single screen in the browser, making it easy for your team to compare styles side by side.
+
+## Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `defaultStyle` | `Boolean` | Marks this composable as the default (or only) style for the component. Use this on the variant that should appear first. |
+| `styleName` | `String` | A label for this specific style variant. Leave empty if the composable is the only style (use `defaultStyle = true` instead). |
+
+## Example: button sizes
+
+The `CustomButton` component below supports three sizes. Each size is a separate preview function, but they are all linked under the name `"CustomButton"` in the `"Buttons"` group.
+
+```kotlin
+// The actual component
+@Composable
+fun CustomButton(
+    text: String,
+    onClick: () -> Unit,
+    size: ButtonSize = ButtonSize.Large,
+)
+
+// Previews — one per style variant
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", defaultStyle = true)
+@Composable
+fun PreviewCustomButtonDefault() {
+    CustomButton(text = "Button", onClick = { })
+}
+
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", styleName = "Medium")
+@Composable
+fun PreviewCustomButtonMedium() {
+    CustomButton(text = "Button", onClick = { }, size = ButtonSize.Medium)
+}
+
+@ShowkaseComposable(name = "CustomButton", group = "Buttons", styleName = "Small")
+@Composable
+fun PreviewCustomButtonSmall() {
+    CustomButton(text = "Button", onClick = { }, size = ButtonSize.Small)
+}
+
+enum class ButtonSize { Large, Medium, Small }
+```
+
+In the Showkase browser, navigating to **Buttons → CustomButton** shows all three variants on the same screen, each labelled with its style name.
+
+<Tip>
+  Always set `defaultStyle = true` on the variant that best represents the component at a glance. This is what appears in group listings before the user drills into the style detail view.
+</Tip>
+
+## Styles vs. separate components
+
+Use styles when the variants are all **the same component** rendered differently (e.g. sizes, densities, or themes). Create separate components instead when the variants have fundamentally different structure or behaviour — for example, a `PrimaryButton` and a `GhostButton` that share no implementation.
+
+A practical rule: if the variants share the same `name` and only differ in one parameter, they are styles. If they are distinct enough to have separate names in your design system, model them as separate components.
+
+<Note>
+  The `styleName` value is stored in `ShowkaseBrowserComponent.styleName` and is accessible through the [Metadata API](/guides/metadata-api), so it can also be used in custom browsers or screenshot testing pipelines.
+</Note>
